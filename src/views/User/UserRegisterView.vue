@@ -50,7 +50,6 @@
           <a-input-password
             v-model="form.checkPassword"
             placeholder="请再次输入密码"
-            :max-length="32"
           />
         </a-form-item>
 
