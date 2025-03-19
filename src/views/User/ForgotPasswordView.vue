@@ -1,51 +1,79 @@
 <template>
-    <div class="forgot-password-container">
-        <a-card class="forgot-password-card" :bordered="false">
+    <div class="auth-container">
+        <a-card class="auth-card">
             <div class="logo-container">
                 <img src="@/assets/logo.png" alt="logo" class="logo" />
-                <h2 class="title">忘记密码</h2>
+                <h2 class="title">重置密码</h2>
             </div>
             <a-form
-                class="forgot-password-form"
+                class="auth-form"
                 :model="form"
+                :rules="rules"
                 @submit="handleSubmit"
                 auto-label-width
             >
-                <a-form-item
-                    field="username"
-                    label="用户名"
-                    :rules="[{ required: true, message: '请输入用户名' }]"
-                >
+                <a-form-item field="email" label="邮箱" required>
                     <a-input
-                        v-model="form.username"
-                        placeholder="请输入用户名"
+                        v-model="form.email"
+                        placeholder="请输入邮箱"
                         allow-clear
-                    >
-                        <template #prefix>
-                            <icon-user />
-                        </template>
-                    </a-input>
+                    />
                 </a-form-item>
-                <a-form-item>
-                    <a-input>
-                        
-                    </a-input>
+
+                <a-form-item field="newPassword" label="密码" required>
+                    <a-input-password
+                        v-model="form.newPassword"
+                        placeholder="请输入密码"
+                        :max-length="32"
+                    />
+                </a-form-item>
+
+                <a-form-item field="checkPassword" label="确认密码" required>
+                    <a-input-password
+                        v-model="form.checkPassword"
+                        placeholder="请再次输入密码"
+                        :max-length="32"
+                    />
+                </a-form-item>
+
+                <a-form-item field="captcha" label="验证码" required>
+                    <div class="captcha-container">
+                        <a-input
+                            v-model="form.captcha"
+                            placeholder="请输入验证码"
+                            :max-length="6"
+                        />
+                        <a-button
+                            type="outline"
+                            :disabled="captchaCountdown > 0"
+                            @click="sendCaptcha"
+                            class="captcha-btn"
+                        >
+                            {{
+                                captchaCountdown > 0
+                                    ? `${captchaCountdown}s`
+                                    : "获取验证码"
+                            }}
+                        </a-button>
+                    </div>
                 </a-form-item>
 
                 <a-form-item>
-                    <a-space :size="16">
+                    <div class="button-container">
                         <a-button
                             type="primary"
                             html-type="submit"
-                            long
                             :loading="loading"
+                            class="register-btn"
+                            long
                         >
-                            提交重置请求
+                            重置
                         </a-button>
-                        <a-button type="outline" long @click="goToLogin">
-                            返回登录
-                        </a-button>
-                    </a-space>
+                    </div>
+                    <div class="login-container">
+                        <span>已有账号？</span>
+                        <a-link @click="goToLogin">立即登录</a-link>
+                    </div>
                 </a-form-item>
             </a-form>
         </a-card>
@@ -55,23 +83,89 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import {
+    UserControllerService,
+    UpdatePasswordRequest,
+    CaptchaControllerService,
+} from "../../../generated";
 import { Message } from "@arco-design/web-vue";
-import { IconUser } from "@arco-design/web-vue/es/icon";
 
 const router = useRouter();
-const loading = ref(false);
-
 const form = reactive({
-    username: "",
-});
+    email: "",
+    newPassword: "",
+    checkPassword: "",
+    captcha: "",
+} as UpdatePasswordRequest);
+
+const loading = ref(false);
+const captchaCountdown = ref(0);
+
+const rules = {
+    email: [
+        { required: true, message: "请输入邮箱" },
+        { type: "email", message: "请输入有效的邮箱地址" },
+    ],
+    newPasswrod: [
+        { required: true, message: "请输入密码" },
+        { minLength: 8, message: "密码长度至少8位" },
+        { maxLength: 32, message: "密码长度不能超过32位" },
+        {
+            validator: (value: string) =>
+                /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(value),
+            message: "密码必须包含字母和数字",
+        },
+    ],
+    checkPassword: [
+        { required: true, message: "请再次输入密码" },
+        {
+            validator: (value: string) => value === form.newPassword,
+            message: "两次输入的密码不一致",
+        },
+    ],
+    captcha: [
+        { required: true, message: "请输入验证码" },
+        { length: 6, message: "验证码长度为6位" },
+    ],
+};
+
+const sendCaptcha = async () => {
+    if (!form.email) {
+        Message.error("请输入邮箱地址");
+        return;
+    }
+
+    try {
+        await CaptchaControllerService.sendCaptchaUsingPost(form.email);
+        Message.success("验证码已发送");
+        captchaCountdown.value = 60;
+        const timer = setInterval(() => {
+            captchaCountdown.value--;
+            if (captchaCountdown.value <= 0) {
+                clearInterval(timer);
+            }
+        }, 1000);
+    } catch (error: any) {
+        Message.error(error.message || "验证码发送失败");
+    }
+};
 
 const handleSubmit = async () => {
     try {
         loading.value = true;
-        Message.success("重置请求已提交");
-        router.push("/user/login");
-    } catch (error) {
-        Message.error("提交失败，请稍后重试");
+        const res = await UserControllerService.updatePasswordUsingPost(form);
+
+        if (res.code === 0) {
+            Message.success("密码重置成功,请前往登录");
+            router.push({
+                path: "/user/login",
+                replace: true,
+            });
+        } else {
+            Message.error(`密码重置成功${res.message}`);
+        }
+    } catch (error: any) {
+        Message.error(error.message || "请求失败，请检查网络连接");
     } finally {
         loading.value = false;
     }
@@ -83,41 +177,217 @@ const goToLogin = () => {
 </script>
 
 <style scoped lang="less">
-.forgot-password-container {
+.auth-container {
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: linear-gradient(145deg, #f0f5ff, #d6e4ff);
+    animation: gradientAnimation 10s ease infinite;
 }
 
-.forgot-password-card {
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.auth-card {
     width: 480px;
+    max-width: 90vw;
     padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 12px 24px rgba(22, 93, 255, 0.1);
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 
-    .logo-container {
-        text-align: center;
-        margin-bottom: 32px;
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px rgba(22, 93, 255, 0.15);
+    }
+}
 
-        .logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 16px;
-        }
+.logo-container {
+    text-align: center;
+    margin-bottom: 32px;
 
-        .title {
-            color: var(--color-text-1);
-            font-weight: 500;
+    .logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 16px;
+    }
+
+    .title {
+        color: #1d2129;
+        font-weight: 500;
+        font-size: 20px;
+    }
+}
+
+.auth-form {
+    .captcha-container {
+        display: flex;
+        gap: 12px;
+
+        .captcha-btn {
+            width: 120px;
+            transition: all 0.3s ease;
+
+            &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(22, 93, 255, 0.1);
+            }
+
+            &:active {
+                transform: translateY(0);
+                box-shadow: none;
+            }
         }
     }
 
-    .forgot-password-form {
-        .extra-options {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 24px;
+    .button-container {
+        margin-top: 24px;
+    }
+
+    .login-container {
+        margin-top: 16px;
+        text-align: center;
+        color: #86909c;
+
+        span {
+            margin-right: 8px;
+        }
+    }
+
+    :deep(.arco-form-item) {
+        margin-bottom: 20px;
+    }
+
+    :deep(.arco-input),
+    :deep(.arco-input-password) {
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-width: 2px;
+
+        &:hover {
+            border-color: #4080ff;
+            transform: translateY(-1px);
+        }
+
+        &:focus {
+            border-color: #165dff;
+            box-shadow: 0 0 0 4px rgba(22, 93, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        &::placeholder {
+            color: #86909c;
+            transition: opacity 0.2s ease;
+        }
+
+        &:focus::placeholder {
+            opacity: 0.5;
+        }
+    }
+
+    :deep(.arco-btn-primary) {
+        background: #165dff;
+        border: none;
+        border-radius: 8px;
+        height: 44px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+
+        &:hover {
+            background: #4080ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(22, 93, 255, 0.2);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: radial-gradient(
+                circle,
+                rgba(255, 255, 255, 0.3) 10%,
+                transparent 10.01%
+            );
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.5s ease;
+        }
+
+        &:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0s;
+        }
+
+        &.arco-btn-loading {
+            &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent
+                );
+                animation: loading 1.5s infinite;
+            }
+        }
+    }
+
+    @keyframes loading {
+        0% {
+            transform: translateX(-100%);
+        }
+        100% {
+            transform: translateX(100%);
+        }
+    }
+
+    :deep(.arco-btn-outline) {
+        color: #165dff;
+        border-color: #165dff;
+        border-radius: 8px;
+        height: 44px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background: rgba(22, 93, 255, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(22, 93, 255, 0.1);
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: none;
         }
     }
 }

@@ -16,6 +16,7 @@ export type { BaseResponse_Page_QuestionVO_ } from './models/BaseResponse_Page_Q
 export type { BaseResponse_Page_User_ } from './models/BaseResponse_Page_User_';
 export type { BaseResponse_Page_UserVO_ } from './models/BaseResponse_Page_UserVO_';
 export type { BaseResponse_Question_ } from './models/BaseResponse_Question_';
+export type { BaseResponse_QuestionSubmitVO_ } from './models/BaseResponse_QuestionSubmitVO_';
 export type { BaseResponse_QuestionVO_ } from './models/BaseResponse_QuestionVO_';
 export type { BaseResponse_string_ } from './models/BaseResponse_string_';
 export type { BaseResponse_User_ } from './models/BaseResponse_User_';
@@ -40,6 +41,7 @@ export type { QuestionSubmitQueryRequest } from './models/QuestionSubmitQueryReq
 export type { QuestionSubmitVO } from './models/QuestionSubmitVO';
 export type { QuestionUpdateRequest } from './models/QuestionUpdateRequest';
 export type { QuestionVO } from './models/QuestionVO';
+export type { UpdatePasswordRequest } from './models/UpdatePasswordRequest';
 export type { User } from './models/User';
 export type { UserAddRequest } from './models/UserAddRequest';
 export type { UserLoginRequest } from './models/UserLoginRequest';
@@ -49,6 +51,7 @@ export type { UserUpdateMyRequest } from './models/UserUpdateMyRequest';
 export type { UserUpdateRequest } from './models/UserUpdateRequest';
 export type { UserVO } from './models/UserVO';
 
+export { CaptchaControllerService } from './services/CaptchaControllerService';
 export { CosControllerService } from './services/CosControllerService';
 export { QuestionControllerService } from './services/QuestionControllerService';
 export { QuestionSubmitControllerService } from './services/QuestionSubmitControllerService';

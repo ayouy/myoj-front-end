@@ -85,7 +85,7 @@ const formatTime = (time?: string) => {
 onMounted(async () => {
   try {
     const id = route.params.id
-    const res = await QuestionControllerService.getQuestion(id)
+    const res = await QuestionControllerService.getQuestionSubmitVoByIdUsingGet(id)
     if (res.code === 0) {
       codeDetail.value = res.data
     } else {

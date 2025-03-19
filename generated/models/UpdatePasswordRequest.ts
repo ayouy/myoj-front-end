@@ -2,11 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UserUpdateMyRequest = {
+export type UpdatePasswordRequest = {
+    captcha?: string;
+    checkPassword?: string;
     email?: string;
-    userAvatar?: string;
-    userName?: string;
-    userPassword?: string;
-    userProfile?: string;
+    newPassword?: string;
 };
 

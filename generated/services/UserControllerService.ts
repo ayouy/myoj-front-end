@@ -10,6 +10,7 @@ import type { BaseResponse_Page_UserVO_ } from '../models/BaseResponse_Page_User
 import type { BaseResponse_User_ } from '../models/BaseResponse_User_';
 import type { BaseResponse_UserVO_ } from '../models/BaseResponse_UserVO_';
 import type { DeleteRequest } from '../models/DeleteRequest';
+import type { UpdatePasswordRequest } from '../models/UpdatePasswordRequest';
 import type { UserAddRequest } from '../models/UserAddRequest';
 import type { UserLoginRequest } from '../models/UserLoginRequest';
 import type { UserQueryRequest } from '../models/UserQueryRequest';
@@ -258,6 +259,27 @@ export class UserControllerService {
             method: 'POST',
             url: '/api/user/update/my',
             body: userUpdateMyRequest,
+            errors: {
+                401: `Unauthorized`,
+                403: `Forbidden`,
+                404: `Not Found`,
+            },
+        });
+    }
+    /**
+     * updatePassword
+     * @param updatePasswordRequest updatePasswordRequest
+     * @returns BaseResponse_boolean_ OK
+     * @returns any Created
+     * @throws ApiError
+     */
+    public static updatePasswordUsingPost(
+        updatePasswordRequest: UpdatePasswordRequest,
+    ): CancelablePromise<BaseResponse_boolean_ | any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/user/update/password',
+            body: updatePasswordRequest,
             errors: {
                 401: `Unauthorized`,
                 403: `Forbidden`,
